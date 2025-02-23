@@ -1,0 +1,6 @@
+@ApiTgBot_HostAddress = http://localhost:5229
+
+GET {{ApiTgBot_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
