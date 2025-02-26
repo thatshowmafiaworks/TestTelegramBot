@@ -7,12 +7,12 @@ using Telegram.Bot.Types;
 
 [ApiController]
 [Route("/")]
-public class BotController(IOptions<BotConfiguration> Config) : ControllerBase
+public class BotController(IOptions<BotConfiguration> Config,IConfiguration config) : ControllerBase
 {
     [HttpGet]
     public async Task<string> SetWebHook([FromServices] ITelegramBotClient bot, CancellationToken ct)
     {
-        var webhookurl = Config.Value.BotWebhookUrl.AbsoluteUri;
+        var webhookurl = config["BotWebhookUrl"];
         await bot.SetWebhook(
             webhookurl,
             allowedUpdates: [],
