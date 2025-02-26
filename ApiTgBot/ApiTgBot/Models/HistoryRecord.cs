@@ -1,0 +1,17 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ApiTgBot.Models
+{
+    [Table("HistoryRecords")]
+    public class HistoryRecord
+    {
+        public long Id { get; set; }
+        [Required]
+        public string Text { get; set; }
+        [Required]
+        public long HistoryId { get; set; }
+
+        public UserHistory History { get; set; }
+    }
+}
