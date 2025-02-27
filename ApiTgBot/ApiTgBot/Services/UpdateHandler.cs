@@ -1,5 +1,7 @@
 ﻿using ApiTgBot.Data;
 using ApiTgBot.Models;
+using ApiTgBot.Models.DTOs;
+using System.Reflection.Metadata.Ecma335;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -9,8 +11,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ApiTgBot.Services
 {
-    public class UpdateHandler(ITelegramBotClient bot, 
-            ILogger<UpdateHandler> logger, 
+    public class UpdateHandler(ITelegramBotClient bot,
+            ILogger<UpdateHandler> logger,
             IDbContext context,
             IWeatherService weather) : IUpdateHandler
     {
@@ -30,14 +32,14 @@ namespace ApiTgBot.Services
             cancellationToken.ThrowIfCancellationRequested();
             await (update switch
             {
-                { Message: { } message } => OnMessage(message),                
+                { Message: { } message } => OnMessage(message),
             });
         }
 
         private async Task OnMessage(Message message)
         {
             logger.LogInformation($"Received message:'{message.Text}' from '{message.Chat.Username}'");
-            if(message.Type == MessageType.Location)
+            if (message.Type == MessageType.Location)
             {
                 await UpdateLocation(message);
                 return;
@@ -62,7 +64,7 @@ namespace ApiTgBot.Services
                 "/weatherByCoordinates" => GetWeatherByLocation(message),
                 _ => Usage(message)
             });
-            
+
             logger.LogInformation($"The message was sent with text:{messageText}");
         }
 
@@ -101,6 +103,7 @@ namespace ApiTgBot.Services
             /weatherByCity      - get weather for your city
             /weatherByCoordinates  - get weather for your location
             /city               - set your city
+            <b>If you want update your location just send it to me</b>
             """;
 
             return await bot.SendMessage(
@@ -134,18 +137,34 @@ namespace ApiTgBot.Services
 
         async Task<Message> UpdateLocation(Message message)
         {
-            throw new NotImplementedException();
+            var coordinates = new CoordinatesDto
+            {
+                Lat = (float)message.Location.Latitude,
+                Lng = (float)message.Location.Longitude
+            };
+            var user = await context.GetUser(message.From.Id);
+            user.Lat = coordinates.Lat;
+            user.Lng = coordinates.Lng;
+            await context.UpdateUser(user);
+            return await bot.SendMessage(message.Chat.Id, "Coordinates was updated");
         }
 
         async Task<Message> GetWeatherByCity(Message message)
         {
-            throw new NotImplementedException("GetWeatherByCity");
+            if(!await IsUserHaveCity(message))
+            {
+                return await SetCity(message);
+            }
+            var user = await context.GetUser(message.From.Id);
+            var city = await context.GetCity(user.CityId);
+            var forecast = await weather.GetForecast(city);
+            return await bot.SendMessage(message.Chat.Id, forecast);
         }
         async Task<Message> GetWeatherByLocation(Message message)
         {
             if (!await IsUserHaveLocation(message))
             {
-                return await bot.SendMessage(message.Chat.Id,"Please send your location to the chat");
+                return await bot.SendMessage(message.Chat.Id, "Please send your location to the chat");
             }
             var coordinates = await context.GetCoordinates(message.From.Id);
             var forecast = await weather.GetForecast(coordinates);
@@ -155,7 +174,16 @@ namespace ApiTgBot.Services
         private async Task<bool> IsUserHaveLocation(Message message)
         {
             Models.User user = await context.GetUser(message.From.Id);
-            return (user.Lat == null && user.Lng == null && user.Lat == 0 && user.Lng == 0) ? false : true;
+            return user.Lat != null &&
+                    user.Lng != null &&
+                    user.Lat != 0 &&
+                    user.Lng != 0;
+        }
+
+        private async Task<bool> IsUserHaveCity(Message message)
+        {
+            Models.User user = await context.GetUser(message.From.Id);
+            return (user.CityId != 0 && user.CityId != null);
         }
     }
 }
