@@ -15,7 +15,8 @@ builder.Services.Configure<BotConfiguration>(botConfigSection);
 builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers().AddTypedClient<ITelegramBotClient>(
     httpClient => new TelegramBotClient(builder.Configuration["BotToken"], httpClient));
 builder.Services.AddSingleton<UpdateHandler>();
-builder.Services.AddTransient<IDbContext, DbContext>();
+builder.Services.AddSingleton<IWeatherService,WeatherService>();
+builder.Services.AddSingleton<IDbContext, DbContext>();
 
 builder.Services.ConfigureTelegramBotMvc();
 

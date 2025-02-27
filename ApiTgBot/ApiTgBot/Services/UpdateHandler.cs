@@ -9,7 +9,10 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ApiTgBot.Services
 {
-    public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger, IDbContext context) : IUpdateHandler
+    public class UpdateHandler(ITelegramBotClient bot, 
+            ILogger<UpdateHandler> logger, 
+            IDbContext context,
+            IWeatherService weather) : IUpdateHandler
     {
         private readonly Dictionary<long, bool> awaitingCityText = new Dictionary<long, bool>();
         public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
@@ -27,13 +30,18 @@ namespace ApiTgBot.Services
             cancellationToken.ThrowIfCancellationRequested();
             await (update switch
             {
-                { Message: { } message } => OnMessage(message),
+                { Message: { } message } => OnMessage(message),                
             });
         }
 
         private async Task OnMessage(Message message)
         {
             logger.LogInformation($"Received message:'{message.Text}' from '{message.Chat.Username}'");
+            if(message.Type == MessageType.Location)
+            {
+                await UpdateLocation(message);
+                return;
+            }
             if (message.Text is not { } messageText) return;
             var user = await context.GetUser(message.From.Id);
             if (user is null) await context.AddUser(
@@ -49,11 +57,12 @@ namespace ApiTgBot.Services
             {
                 "/photo" => SendPhoto(message),
                 "/getHi" => GetHi(message),
-                "/weather" => GetWeather(message),
+                "/weatherByCity" => GetWeatherByCity(message),
                 "/city" => SetCity(message),
+                "/weatherByCoordinates" => GetWeatherByLocation(message),
                 _ => Usage(message)
             });
-
+            
             logger.LogInformation($"The message was sent with text:{messageText}");
         }
 
@@ -87,10 +96,11 @@ namespace ApiTgBot.Services
 
             const string usage = """
             <b><u>Bot Menu</u></b>
-            /getHi      - get "Hi, {username}!" text
-            /photo      - get random photo
-            /weather    - get weather for your city
-            /city       - set your city
+            /getHi              - get "Hi, {username}!" text
+            /photo              - get random photo
+            /weatherByCity      - get weather for your city
+            /weatherByCoordinates  - get weather for your location
+            /city               - set your city
             """;
 
             return await bot.SendMessage(
@@ -122,9 +132,30 @@ namespace ApiTgBot.Services
                 textToSend);
         }
 
-        async Task<Message> GetWeather(Message message)
+        async Task<Message> UpdateLocation(Message message)
         {
             throw new NotImplementedException();
+        }
+
+        async Task<Message> GetWeatherByCity(Message message)
+        {
+            throw new NotImplementedException("GetWeatherByCity");
+        }
+        async Task<Message> GetWeatherByLocation(Message message)
+        {
+            if (!await IsUserHaveLocation(message))
+            {
+                return await bot.SendMessage(message.Chat.Id,"Please send your location to the chat");
+            }
+            var coordinates = await context.GetCoordinates(message.From.Id);
+            var forecast = await weather.GetForecast(coordinates);
+            return await bot.SendMessage(message.Chat.Id, forecast);
+        }
+
+        private async Task<bool> IsUserHaveLocation(Message message)
+        {
+            Models.User user = await context.GetUser(message.From.Id);
+            return (user.Lat == null && user.Lng == null && user.Lat == 0 && user.Lng == 0) ? false : true;
         }
     }
 }
