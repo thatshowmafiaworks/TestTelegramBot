@@ -17,6 +17,12 @@ namespace ApiTgBot.Services
             IWeatherService weather) : IUpdateHandler
     {
         private readonly Dictionary<long, bool> awaitingCityText = new Dictionary<long, bool>();
+        private readonly InlineKeyboardButton[][] keyboardButtons = 
+            {
+                [("Hi", "/getHi"),("Photo", "/photo")],
+                [("Weather in city", "/weatherByCity"),("Weather in your location", "/weatherByCoordinates")],
+                [("YourCity", "/city"),("Remove keyboard", "/inlinekb")]
+            };
         public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
         {
             logger.LogInformation($"HandleError: {exception}");
@@ -32,7 +38,8 @@ namespace ApiTgBot.Services
             cancellationToken.ThrowIfCancellationRequested();
             await (update switch
             {
-                { Message: { } message } => OnMessage(message),
+                { CallbackQuery: { } callback } => OnCallback(callback),
+                { Message: { } message } => OnMessage(message)
             });
         }
 
@@ -62,10 +69,30 @@ namespace ApiTgBot.Services
                 "/weatherByCity" => GetWeatherByCity(message),
                 "/city" => SetCity(message),
                 "/weatherByCoordinates" => GetWeatherByLocation(message),
+                "/inlinekb" => SendInlineKeyboard(message),
                 _ => Usage(message)
             });
 
             logger.LogInformation($"The message was sent with text:{messageText}");
+        }
+
+        public async Task OnCallback(CallbackQuery callback)
+        {
+            Message message = callback.Message;
+            message.Text = callback.Data;
+            message.From = callback.From;
+            Message sentMessage = await (message.Text.Split(' ')[0] switch
+            {
+                "/photo" => SendPhoto(message),
+                "/getHi" => GetHi(message),
+                "/weatherByCity" => GetWeatherByCity(message),
+                "/city" => SetCity(message),
+                "/weatherByCoordinates" => GetWeatherByLocation(message),
+                "/inlinekb" => SendInlineKeyboard(message),
+                _ => Usage(message)
+            });
+
+            logger.LogInformation($"The callback was sent with text:{message.Text}");
         }
 
         async Task<Message> SetCity(Message message)
@@ -103,6 +130,7 @@ namespace ApiTgBot.Services
             /weatherByCity      - get weather for your city
             /weatherByCoordinates  - get weather for your location
             /city               - set your city
+            /inlinekb              - InlineKeyboard
             <b>If you want update your location just send it to me</b>
             """;
 
@@ -120,7 +148,7 @@ namespace ApiTgBot.Services
             //await Task.Delay(1000);
             return await bot.SendPhoto(
                 message.Chat.Id,
-                $"https://picsum.photos/500/750?random={message.Date.Second}",
+                $"https://picsum.photos/500/750?random={DateTime.UtcNow}",
                 "<a href=\"https://picsum.photos/\">picsum</a>"
                 , ParseMode.Html);
         }
@@ -169,6 +197,11 @@ namespace ApiTgBot.Services
             var coordinates = await context.GetCoordinates(message.From.Id);
             var forecast = await weather.GetForecast(coordinates);
             return await bot.SendMessage(message.Chat.Id, forecast);
+        }
+
+        async Task<Message> SendInlineKeyboard(Message message)
+        {
+            return await bot.SendMessage(message.Chat.Id, "What you want to do ?", replyMarkup: keyboardButtons);
         }
 
         private async Task<bool> IsUserHaveLocation(Message message)
