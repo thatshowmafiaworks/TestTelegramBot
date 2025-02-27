@@ -1,4 +1,5 @@
 ﻿using ApiTgBot.Models;
+using ApiTgBot.Models.DTOs;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Z.Dapper.Plus;
@@ -8,9 +9,12 @@ namespace ApiTgBot.Data
     public class DbContext: IDbContext
     {
         private readonly string _connectionString;
-        public DbContext(IConfiguration configuration)
+        private readonly ILogger<DbContext> _logger;
+
+        public DbContext(IConfiguration configuration, ILogger<DbContext> logger)
         {
             _connectionString = configuration["ConnectionString"];
+            _logger = logger;
         }
 
         public async Task<IEnumerable<Models.User>> GetAllUsers()
@@ -81,6 +85,22 @@ namespace ApiTgBot.Data
             using var connection = new SqlConnection(_connectionString);
             var city = await connection.QuerySingleOrDefaultAsync<City>(query, new { name = name });
             return city;
+        }
+
+        public async Task SetCoordinates(long userId, CoordinatesDto coordinates)
+        {
+            var user = await GetUser(userId);
+            user.Lat = coordinates.Lat;
+            user.Lng = coordinates.Lng;
+            await UpdateUser(user);
+            _logger.LogInformation($"Added coordinates to user:{user.Username}\t with coordinates:lat'{user.Lat}' lng:'{user.Lng}'");
+        }
+
+        public async Task<CoordinatesDto> GetCoordinates(long userId)
+        {
+            var user = await GetUser(userId);
+            var coordinates = new CoordinatesDto { Lat = user.Lat, Lng = user.Lng };
+            return coordinates;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ApiTgBot.Models;
+using ApiTgBot.Models.DTOs;
 
 namespace ApiTgBot.Data
 {
@@ -12,5 +13,9 @@ namespace ApiTgBot.Data
         Task AddCity(string name);
         Task<City> GetCity(long id);
         Task<City> GetCity(string name);
+        Task SetCoordinates(long userId, CoordinatesDto coordinates);
+        Task<CoordinatesDto> GetCoordinates(long userId);
+
+
     }
 }
