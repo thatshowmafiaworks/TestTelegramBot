@@ -17,6 +17,7 @@ builder.Services.AddHttpClient("tgwebhook").RemoveAllLoggers().AddTypedClient<IT
 builder.Services.AddSingleton<UpdateHandler>();
 builder.Services.AddSingleton<IWeatherService,WeatherService>();
 builder.Services.AddSingleton<IHistoryService, HistoryService>();
+builder.Services.AddSingleton<IMessagerService, MessagerService>();
 builder.Services.AddSingleton<IDbContext, DbContext>();
 
 builder.Services.ConfigureTelegramBotMvc();

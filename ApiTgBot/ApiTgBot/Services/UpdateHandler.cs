@@ -189,7 +189,7 @@ namespace ApiTgBot.Services
             return await bot.SendMessage(message.Chat.Id, "Coordinates was updated");
         }
 
-        async Task<Message> GetWeatherByCity(Message message)
+        public async Task<Message> GetWeatherByCity(Message message)
         {
             if(!await IsUserHaveCity(message))
             {
@@ -200,7 +200,7 @@ namespace ApiTgBot.Services
             var forecast = await weather.GetForecast(city);
             return await bot.SendMessage(message.Chat.Id, forecast);
         }
-        async Task<Message> GetWeatherByLocation(Message message)
+        public async Task<Message> GetWeatherByLocation(Message message)
         {
             if (!await IsUserHaveLocation(message))
             {

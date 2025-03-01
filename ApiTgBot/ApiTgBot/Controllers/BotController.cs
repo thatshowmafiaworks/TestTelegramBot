@@ -10,7 +10,7 @@ using Telegram.Bot.Types;
 
 [ApiController]
 [Route("/")]
-public class BotController(IOptions<BotConfiguration> Config, IConfiguration config, IDbContext context) : ControllerBase
+public class BotController(IOptions<BotConfiguration> Config, IConfiguration config, IDbContext context,IMessagerService messager) : ControllerBase
 {
     [HttpGet]
     public async Task<string> SetWebHook([FromServices] ITelegramBotClient bot, CancellationToken ct)
@@ -48,9 +48,18 @@ public class BotController(IOptions<BotConfiguration> Config, IConfiguration con
     }
 
     [HttpGet]
-    [Route("/sendweather/")]
+    [Route("sendweather/")]
     public async Task<string> SendWeatherToAll()
     {
-        return "do smth about it";
+        var result = await messager.SendWeatherToAllUsers();
+        return "result";
+    }
+
+    [HttpPost]
+    [Route("sendmessage/")]
+    public async Task<string> SendMessageToAll([FromBody]string textMessage)
+    {
+        var result = await messager.SendMessageToAllUsers(textMessage);
+        return result;
     }
 }
