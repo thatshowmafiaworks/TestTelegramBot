@@ -38,17 +38,19 @@ public class BotController(IOptions<BotConfiguration> Config, IConfiguration con
     }
 
     [HttpGet]
-    [Route("/user/")]
+    [Route("user/{id}")]
     public async Task<ApiTgBot.Models.User> GetUser(long id)
     {
         var user = await context.GetUser(id);
+        var histories = await context.GetHistoryRecordsForUser(id);
+        user.Histories = histories;
         return user;
     }
 
-    [HttpPost]
+    [HttpGet]
     [Route("/sendweather/")]
-    public async Task<IActionResult> SendWeatherToAll()
+    public async Task<string> SendWeatherToAll()
     {
-        throw new NotImplementedException();
+        return "do smth about it";
     }
 }

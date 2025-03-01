@@ -17,6 +17,6 @@ namespace ApiTgBot.Models
         public float Lat { get; set; }
         public float Lng { get; set; }
         public City City { get; set; }
-        public IEnumerable<UserHistory> Histories{get;set;}
+        public IEnumerable<HistoryRecord> Histories{get;set;}
     }
 }

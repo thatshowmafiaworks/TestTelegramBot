@@ -133,19 +133,12 @@ namespace ApiTgBot.Data
         public async Task<IEnumerable<HistoryRecord>> GetHistoryRecordsForUser(long userId)
         {
             using var connection = new SqlConnection(_connectionString);
-            var query = "Select * " +
-                "from HistoryRecords record join UserHistories history on history.Id = record.HistoryId" +
-                "where history.UserId = @userId";
+            var userHistory = await GetUserHistory(userId);
 
-            var records = await connection.QueryAsync<HistoryRecord, UserHistory, HistoryRecord>
-                (query, (record, history) =>
-            {
-                record.History = history;
-                return record;
-            },
-            new { userId = userId }
-            ,
-            splitOn: "HistoryId");
+            var query = $"Select * from HistoryRecords where HistoryId = {userHistory.Id}";
+
+
+            var records = await connection.QueryAsync<HistoryRecord>(query);
             return records;
         }
     }
