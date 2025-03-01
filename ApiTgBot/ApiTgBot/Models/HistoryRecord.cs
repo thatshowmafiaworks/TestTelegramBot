@@ -11,6 +11,7 @@ namespace ApiTgBot.Models
         public string Text { get; set; }
         [Required]
         public long HistoryId { get; set; }
+        public DateTime DateTime { get; set; }
 
         public UserHistory History { get; set; }
     }

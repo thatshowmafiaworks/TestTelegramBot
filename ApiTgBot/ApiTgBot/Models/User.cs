@@ -12,6 +12,7 @@ namespace ApiTgBot.Models
         [Required]
         public string? Username { get; set; }
         public long CityId { get; set; }
+        public long ChatId { get; set; }
 
         public float Lat { get; set; }
         public float Lng { get; set; }
