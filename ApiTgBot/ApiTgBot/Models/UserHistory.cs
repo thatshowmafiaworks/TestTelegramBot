@@ -6,6 +6,7 @@ namespace ApiTgBot.Models
     [Table("UserHistories")]
     public class UserHistory
     {
+        [Key]
         public long Id { get; set; }
         [Required]
         public long UserId { get; set; }

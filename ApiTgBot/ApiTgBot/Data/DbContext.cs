@@ -6,7 +6,7 @@ using Z.Dapper.Plus;
 
 namespace ApiTgBot.Data
 {
-    public class DbContext: IDbContext
+    public class DbContext : IDbContext
     {
         private readonly string _connectionString;
         private readonly ILogger<DbContext> _logger;
@@ -41,7 +41,7 @@ namespace ApiTgBot.Data
             {
                 user = (await connection.QuerySingleOrDefaultAsync<Models.User>(query, new { id = id }));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Exception!!!:::{ex.Message}");
             }
@@ -58,7 +58,7 @@ namespace ApiTgBot.Data
             }
         }
 
-        public async Task UpdateUser(User user)
+        public async Task UpdateUser(Models.User user)
         {
             using var connection = new SqlConnection(_connectionString);
             await connection.SingleUpdateAsync(user);
@@ -101,6 +101,52 @@ namespace ApiTgBot.Data
             var user = await GetUser(userId);
             var coordinates = new CoordinatesDto { Lat = user.Lat, Lng = user.Lng };
             return coordinates;
+        }
+
+        public async Task<UserHistory> GetUserHistory(long userId)
+        {
+            var query = "select * from UserHistories where UserId = @userId";
+            using var connection = new SqlConnection(_connectionString);
+            var history = await connection.QueryFirstOrDefaultAsync<UserHistory>(query, new { userId = userId });
+            if (history is null)
+            {
+                await CreateUserHistory(userId);
+                return await GetUserHistory(userId);
+            }
+            return history;
+        }
+
+        public async Task CreateUserHistory(long userId)
+        {
+            var history = new UserHistory { UserId = userId };
+            using var connection = new SqlConnection(_connectionString);
+            await connection.SingleInsertAsync(history);
+
+        }
+
+        public async Task AddHistoryRecord(HistoryRecord record)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.SingleInsertAsync(record);
+        }
+
+        public async Task<IEnumerable<HistoryRecord>> GetHistoryRecordsForUser(long userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var query = "Select * " +
+                "from HistoryRecords record join UserHistories history on history.Id = record.HistoryId" +
+                "where history.UserId = @userId";
+
+            var records = await connection.QueryAsync<HistoryRecord, UserHistory, HistoryRecord>
+                (query, (record, history) =>
+            {
+                record.History = history;
+                return record;
+            },
+            new { userId = userId }
+            ,
+            splitOn: "HistoryId");
+            return records;
         }
     }
 }

@@ -15,7 +15,9 @@ namespace ApiTgBot.Data
         Task<City> GetCity(string name);
         Task SetCoordinates(long userId, CoordinatesDto coordinates);
         Task<CoordinatesDto> GetCoordinates(long userId);
-
-
+        Task CreateUserHistory(long userId);
+        Task<UserHistory> GetUserHistory(long userId);
+        Task AddHistoryRecord(HistoryRecord record);
+        Task<IEnumerable<HistoryRecord>> GetHistoryRecordsForUser(long userId);
     }
 }

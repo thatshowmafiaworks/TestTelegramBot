@@ -14,7 +14,8 @@ namespace ApiTgBot.Services
     public class UpdateHandler(ITelegramBotClient bot,
             ILogger<UpdateHandler> logger,
             IDbContext context,
-            IWeatherService weather) : IUpdateHandler
+            IWeatherService weather,
+            IHistoryService history) : IUpdateHandler
     {
         private readonly Dictionary<long, bool> awaitingCityText = new Dictionary<long, bool>();
         private readonly InlineKeyboardButton[][] keyboardButtons = 
@@ -59,7 +60,8 @@ namespace ApiTgBot.Services
                     Id = message.From.Id,
                     Username = message.From.Username,
                     FirstName = message.From.FirstName,
-                    LastName = message.From.LastName
+                    LastName = message.From.LastName,
+                    ChatId = message.Chat.Id
                 });
 
             Message sentMessage = await (messageText.Split(' ')[0] switch
@@ -72,7 +74,7 @@ namespace ApiTgBot.Services
                 "/inlinekb" => SendInlineKeyboard(message),
                 _ => Usage(message)
             });
-
+            await history.AddHistoryRecord(message);
             logger.LogInformation($"The message was sent with text:{messageText}");
         }
 
@@ -81,6 +83,16 @@ namespace ApiTgBot.Services
             Message message = callback.Message;
             message.Text = callback.Data;
             message.From = callback.From;
+            var user = await context.GetUser(message.From.Id);
+            if (user is null) await context.AddUser(
+                new Models.User
+                {
+                    Id = message.From.Id,
+                    Username = message.From.Username,
+                    FirstName = message.From.FirstName,
+                    LastName = message.From.LastName,
+                    ChatId = message.Chat.Id
+                });
             Message sentMessage = await (message.Text.Split(' ')[0] switch
             {
                 "/photo" => SendPhoto(message),
@@ -91,7 +103,7 @@ namespace ApiTgBot.Services
                 "/inlinekb" => SendInlineKeyboard(message),
                 _ => Usage(message)
             });
-
+            await history.AddHistoryRecord(message);
             logger.LogInformation($"The callback was sent with text:{message.Text}");
         }
 
