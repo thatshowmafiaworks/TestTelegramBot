@@ -1,4 +1,5 @@
 # TestTgBot
+# Username in telegram: @AspNetTgTestBot
 ## Stack:
   ### Asp.Net WebApi
   ### Mssql Database 
